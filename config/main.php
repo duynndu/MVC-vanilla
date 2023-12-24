@@ -4,7 +4,8 @@ return[
     'rootDir'=>dirname(dirname(__FILE__)),//MVCPHP
     'layout'=>'layouts/main',
     'db'=>[
-        'host'=>'127.0.0.1',
+        'dbName'=>'vanh-store',
+        'hostName'=>'127.0.0.1',
         'post'=>'3306',
         'username'=>'root',
         'password'=>''

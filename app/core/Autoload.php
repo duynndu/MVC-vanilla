@@ -18,7 +18,8 @@ class Autoload{
             throw new AppException("url: $filePath Notfound Autoload failed");
         }
     }
-    private function autoLoadFile(){
+    private function autoLoadFile(): void
+    {
         foreach ($this->defaultFileLoad() as $file){
             $filePath=$this->rootDir.'/'.$file;
             if(file_exists($filePath)){
@@ -28,10 +29,12 @@ class Autoload{
             }
         }
     }
-    private function defaultFileLoad(){
+    private function defaultFileLoad(): array
+    {
         return[
             'app/core/Router.php',
-            'app/Routers.php'
+            'app/Routers.php',
+            'app/core/DB.php'
         ];
     }
 }

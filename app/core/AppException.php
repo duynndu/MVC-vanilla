@@ -8,7 +8,7 @@ class AppException extends \Exception {
     }
     public function exception_handle($error){
         echo "<pre>";
-        echo "<h1>{$error->getMessage()}</h1>";
+        echo "<h1 style='color: #ff4040'>{$error->getMessage()}</h1>";
         echo "<h2>>>>>File {$error->getFile()}</h2>";
         echo "<h2>>>>>Line {$error->getLine()}</h2>";
         foreach ($error->getTrace() as $trace) {
@@ -23,6 +23,5 @@ class AppException extends \Exception {
             echo "<h3>Line :$line</h3>";
             echo "<hr><br>";
         }
-        print_r($error);
     }
 }

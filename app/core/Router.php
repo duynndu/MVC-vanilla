@@ -1,5 +1,6 @@
 <?php
 use app\core\Registry;
+use \app\core\AppException;
 class Router
 {
     private $basePath;
@@ -89,10 +90,10 @@ class Router
                 call_user_func_array([$obj, $methodName], array_values($params));
                 Registry::getInstance()->method=$methodName;
             } else {
-                die('method notfound in ' . $className . '<br>');
+                throw new AppException("Method $methodName not found");
             }
         } else {
-            die('class ' . $className . ' notfound' . '<br>');
+            throw new AppException("Class $className not found");
         }
     }
 
