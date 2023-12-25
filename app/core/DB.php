@@ -1,8 +1,11 @@
 <?php
-use \app\core\Registry;
+
+use app\core\AppException;
+use app\core\Registry;
+
 class DB
 {
-    private $columns;
+    private $columns=[];
     private $from;
     private $distinct = '';
     private $joins = [];
@@ -13,23 +16,28 @@ class DB
     private $limit = '';
     private $offset = '';
     private $db;
+    private $connect;
+    private $type;
 
     public function __construct($tableName)
     {
         $this->from = $tableName;
-        $this->db=Registry::getInstance()->config['db'];
-        $this->connect();
+        $this->db = Registry::getInstance()->config['db'];
+        $this->connect = $this->connect();
+        $this->type='GET';
     }
-    private function connect(){
-        $conn=mysqli_connect($this->db['hostName'],$this->db['username'],$this->db['password'],$this->db['dbName']);
-        if(!$conn){
-             die('Không thể kết nối');
+
+    private function connect()
+    {
+        $conn = mysqli_connect($this->db['hostName'], $this->db['username'], $this->db['password'], $this->db['dbName']);
+        if (!$conn) {
+            echo "Failed to connect to MySQL: " . mysqli_connect_error();
+            exit();
         }
         return $conn;
     }
-    private function query($sql){
-        return mysqli_query($this->connect(),$sql);
-    }
+
+
     public static function table($tableName)
     {
         return new self($tableName);
@@ -49,34 +57,33 @@ class DB
 
     public function join($table, $on, $type = '')
     {
-        $type = $type . ' ';
         $table = $type . "JOIN $table";
         $on = "ON $on";
-        $this->joins[] = [$table, $on, $type];
+        $this->joins[] = $table . ' ' . $on;
         return $this;
     }
 
     public function leftJoin($table, $on)
     {
-        $this->join($table, $on, 'LEFT');
+        $this->join($table, $on, 'LEFT ');
         return $this;
     }
 
     public function rightJoin($table, $on)
     {
-        $this->join($table, $on, 'RIGHT');
+        $this->join($table, $on, 'RIGHT ');
         return $this;
     }
 
     public function where($where, $separator = 'AND ')
     {
+        $where = preg_replace("/([^,=\\s]+)=('?)([^',\\s]*)(\\2)/", '$1=\'$3\'', $where);
         if (count($this->wheres) == 0) {
             $where = 'WHERE ' . $where;
-            $this->wheres[] = [$where, ''];
+            $this->wheres[] = $where;
         } else {
-            $this->wheres[] = [$where, $separator];
+            $this->wheres[] = $separator . $where;
         }
-
         return $this;
     }
 
@@ -99,9 +106,9 @@ class DB
     {
         if (count($this->havings) == 0) {
             $having = 'HAVING ' . $having;
-            $this->havings[] = [$having, ''];
+            $this->havings[] = $having;
         } else {
-            $this->havings[] = [$having, $separator];
+            $this->havings[] = $separator . $having;
         }
         return $this;
     }
@@ -117,7 +124,7 @@ class DB
         if (count($this->orders) == 0) {
             $column = 'ORDER BY ' . $column;
         }
-        $this->orders[] = [$column, $arrange];
+        $this->orders[] = $column . ' ' . $arrange;
         return $this;
     }
 
@@ -133,64 +140,101 @@ class DB
         return $this;
     }
 
-    private function sql()
+    private function getSQL($type = 'GET',$data=[])
     {
-
         $column = implode(",", $this->columns);
-        $joins = [];
-        foreach ($this->joins as $join) {
-            $joins[] = $join[0] . ' ' . $join[1];
-        }
-        $joins = implode(' ', $joins);
-        $wheres = [];
-        foreach ($this->wheres as $where) {
-            $wheres[] = $where[1] . $where[0];
-        }
-        $wheres = implode(' ', $wheres);
+        $joins = implode(' ', $this->joins);
+        $wheres = implode(' ', $this->wheres);
         $groupBy = implode(",", $this->groups);
-        $groupBy = $this->groups ? $groupBy : '';
-        print_r($groupBy);
-        $havings = [];
-        foreach ($this->havings as $having) {
-            $havings[] = $having[1] . $having[0];
+        $havings = implode(' ', $this->havings);
+        $orders = implode(',', $this->orders);
+        $sql='';
+        if ($type == 'GET') {
+            $sql = "SELECT {$this->distinct} {$column}
+            FROM {$this->from}
+            {$joins}
+            {$wheres}
+            {$groupBy}
+            {$havings}
+            {$orders}
+            {$this->limit}
+            {$this->offset}
+            ";
         }
-        $havings = $this->havings ? implode(' ', $havings) : '';
-        $orders = [];
-        foreach ($this->orders as $order) {
-            $orders[] = $order[0] . ' ' . $order[1];
+        if($type=='ADD'||$type=='INSERT'){
+            $col = implode(",", array_map(fn($value) => "`$value`", array_keys($data)));
+            $value = implode(",", array_map(fn($value) => "'$value'", array_values($data)));
+            $sql = "INSERT INTO {$this->from} ({$col})
+            VALUE ({$value})";
         }
-        $orders = $this->orders ? implode(',', $orders) : '';
-        $limit = $this->limit;
-        $offset = $this->offset;
-        $sql = "SELECT {$this->distinct} {$column}
-        FROM {$this->from}
-        {$joins}
-        {$wheres}
-        {$groupBy}
-        {$havings}
-        {$orders}
-        {$limit}
-        {$offset}
-        ";
+        if($type=='EDIT'||$type=='UPDATE'){
+            $data = implode(",", array_map(fn($key, $value) => $key . '=' . $value, array_keys($data), array_values($data)));
+            $sql = "UPDATE {$this->from}
+            SET {$data}
+            {$joins}
+            {$wheres}
+            {$groupBy}
+            {$havings}";
+        }
+        if($type=='DELETE'||$type=='REMOVE'){
+            $sql = "DELETE FROM {$this->from}
+            {$joins}
+            {$wheres}
+            {$groupBy}
+            {$havings}";
+        }
         echo $sql;
         return $sql;
     }
-    public function get(){
-        $data=$this->query($this->sql())->fetch_assoc();
-        print_r($data);
+
+    public function get()
+    {
+        $data = $this->query($this->getSQL())->fetch_assoc();
         return $data;
     }
-    public function getAll(){
-        $data=[];
-        $result=$this->query($this->sql());
-        while ($row=$result->fetch_assoc()){
-            $data[]=$row;
+
+    public function getAll()
+    {
+        $data = [];
+        $result = $this->query($this->getSQL());
+        while ($row = $result->fetch_assoc()) {
+            $data[] = $row;
         }
         return $data;
     }
-    public function getLastInsertID(){
-        $this->query($this->sql());
-        return $this->connect()->insert_id;
+
+    public function getLastInsertID()
+    {
+        return $this->connect->insert_id;
+    }
+
+    public function delete()
+    {
+        return $this->query($this->getSQL('DELETE'));
+    }
+
+    public function update($data = [])
+    {
+        return $this->query($this->getSQL('UPDATE',$data));
+    }
+
+    public function insert($data = [])
+    {
+        return $this->query($this->getSQL('INSERT',$data));
+    }
+
+    /**
+     * @throws AppException
+     * ném lỗi vào App Exception để in ra lỗi
+     */
+    private function query($sql)
+    {
+        $query = mysqli_query($this->connect, $sql);
+        if ($query) {
+            return $query;
+        } else {
+            throw new AppException(mysqli_error($this->connect));
+        }
     }
 
 }

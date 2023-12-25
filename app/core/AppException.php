@@ -7,21 +7,21 @@ class AppException extends \Exception {
         set_exception_handler([$this,'exception_handle']);
     }
     public function exception_handle($error){
-        echo "<pre>";
-        echo "<h1 style='color: #ff4040'>{$error->getMessage()}</h1>";
-        echo "<h2>>>>>File {$error->getFile()}</h2>";
-        echo "<h2>>>>>Line {$error->getLine()}</h2>";
+        echo "<pre><br><hr>";
+        echo "<h4 style='color: #ff4040'>{$error->getMessage()}</h4>";
+        echo "<h4>>>>>File {$error->getFile()}</h4>";
+        echo "<h4>>>>>Line {$error->getLine()}</h4><hr><br>";
         foreach ($error->getTrace() as $trace) {
             $file=$trace['file']??'Autoload.php';
             $function=$trace['function']??'';
             $args=$trace['args'][0]??'';
             $line=$trace['line']??'';
-            echo "<h3>File :$file</h3>";
-            echo "<h3>Function :$function</h3>";
-            echo "<h3>Arg :</h3>";
+            echo "<h5>File :$file</h5>";
+            echo "<h5>Function :$function</h5>";
+            echo "<h5>Arg :</h5>";
             print_r($args);
-            echo "<h3>Line :$line</h3>";
-            echo "<hr><br>";
+            echo "<h5>Line :$line</h5><hr><br>";
         }
+        echo "</pre>";
     }
 }
