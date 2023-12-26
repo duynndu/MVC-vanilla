@@ -5,7 +5,7 @@ use app\core\Registry;
 
 class DB
 {
-    private $columns=[];
+    private $columns = [];
     private $from;
     private $distinct = '';
     private $joins = [];
@@ -24,7 +24,7 @@ class DB
         $this->from = $tableName;
         $this->db = Registry::getInstance()->config['db'];
         $this->connect = $this->connect();
-        $this->type='GET';
+        $this->type = 'GET';
     }
 
     private function connect()
@@ -77,7 +77,7 @@ class DB
 
     public function where($where, $separator = 'AND ')
     {
-        $where = preg_replace("/([^,=\\s]+)=('?)([^',\\s]*)(\\2)/", '$1=\'$3\'', $where);
+        $where = preg_replace("/([^,=\\s]+)=('?)([^',\\s]*)('?)/", "$1='$3'", $where);
         if (count($this->wheres) == 0) {
             $where = 'WHERE ' . $where;
             $this->wheres[] = $where;
@@ -140,7 +140,7 @@ class DB
         return $this;
     }
 
-    private function getSQL($type = 'GET',$data=[])
+    private function getSQL($type = 'GET', $data = []): string
     {
         $column = implode(",", $this->columns);
         $joins = implode(' ', $this->joins);
@@ -148,7 +148,7 @@ class DB
         $groupBy = implode(",", $this->groups);
         $havings = implode(' ', $this->havings);
         $orders = implode(',', $this->orders);
-        $sql='';
+        $sql = '';
         if ($type == 'GET') {
             $sql = "SELECT {$this->distinct} {$column}
             FROM {$this->from}
@@ -161,13 +161,13 @@ class DB
             {$this->offset}
             ";
         }
-        if($type=='ADD'||$type=='INSERT'){
+        if ($type == 'ADD' || $type == 'INSERT') {
             $col = implode(",", array_map(fn($value) => "`$value`", array_keys($data)));
             $value = implode(",", array_map(fn($value) => "'$value'", array_values($data)));
             $sql = "INSERT INTO {$this->from} ({$col})
             VALUE ({$value})";
         }
-        if($type=='EDIT'||$type=='UPDATE'){
+        if ($type == 'EDIT' || $type == 'UPDATE') {
             $data = implode(",", array_map(fn($key, $value) => $key . '=' . $value, array_keys($data), array_values($data)));
             $sql = "UPDATE {$this->from}
             SET {$data}
@@ -176,7 +176,7 @@ class DB
             {$groupBy}
             {$havings}";
         }
-        if($type=='DELETE'||$type=='REMOVE'){
+        if ($type == 'DELETE' || $type == 'REMOVE') {
             $sql = "DELETE FROM {$this->from}
             {$joins}
             {$wheres}
@@ -203,7 +203,7 @@ class DB
         return $data;
     }
 
-    public function getLastInsertID()
+    public function getLastInsertID(): int|string
     {
         return $this->connect->insert_id;
     }
@@ -215,17 +215,19 @@ class DB
 
     public function update($data = [])
     {
-        return $this->query($this->getSQL('UPDATE',$data));
-    }
-
-    public function insert($data = [])
-    {
-        return $this->query($this->getSQL('INSERT',$data));
+        return $this->query($this->getSQL('UPDATE', $data));
     }
 
     /**
      * @throws AppException
-     * ném lỗi vào App Exception để in ra lỗi
+     */
+    public function insert($data = [])
+    {
+        return $this->query($this->getSQL('INSERT', $data));
+    }
+
+    /**
+     * @throws AppException
      */
     private function query($sql)
     {
@@ -235,6 +237,10 @@ class DB
         } else {
             throw new AppException(mysqli_error($this->connect));
         }
+    }
+    public function __destruct()
+    {
+        $this->connect->close();
     }
 
 }

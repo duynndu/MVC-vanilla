@@ -12,8 +12,8 @@ class HomeController extends Controller {
         echo 'đây là trang home của class Home <br>';
         App::console_log(func_get_args());
         $this->render('index','this is home page');
-        $addData=DB::table('users')
-            ->where("last_name=Ma AND first_name=tien")
+        DB::table('users')
+            ->where("last_name=Ma AND first_nam=tien")
             ->delete();
     }
 }
