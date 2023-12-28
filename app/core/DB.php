@@ -77,12 +77,14 @@ class DB
 
     public function where($where, $separator = 'AND ')
     {
-        $where = preg_replace("/([^,=\\s]+)=('?)([^',\\s]*)('?)/", "$1='$3'", $where);
-        if (count($this->wheres) == 0) {
-            $where = 'WHERE ' . $where;
-            $this->wheres[] = $where;
-        } else {
-            $this->wheres[] = $separator . $where;
+        if($where){
+            $where = preg_replace("/([^,=\\s]+)=('?)([^',\\s]*)('?)/", "$1='$3'", $where);
+            if (count($this->wheres) == 0) {
+                $where = 'WHERE ' . $where;
+                $this->wheres[] = $where;
+            } else {
+                $this->wheres[] = $separator . $where;
+            }
         }
         return $this;
     }
@@ -203,18 +205,20 @@ class DB
         return $data;
     }
 
-    public function getLastInsertID(): int|string
+    public function getLastInsertID()
     {
         return $this->connect->insert_id;
     }
 
-    public function delete()
+    public function delete($where=null)
     {
+        $this->where($where);
         return $this->query($this->getSQL('DELETE'));
     }
 
-    public function update($data = [])
+    public function update($data = [],$where=null)
     {
+        $this->where($where);
         return $this->query($this->getSQL('UPDATE', $data));
     }
 
